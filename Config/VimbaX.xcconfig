@@ -3,9 +3,9 @@
 //
 //  Points the build system at your local Vimba X SDK installation.
 //
-//  The Vimba X SDK for macOS is distributed as a tar.gz; there is no
-//  canonical install location. Pick one of the options below and
-//  uncomment/adjust it to match where you extracted the SDK on disk.
+//  The Vimba X SDK for macOS is distributed as a .dmg disk image:
+//  mount the DMG, drag the VimbaX folder out of it to wherever you
+//  want the SDK to live, then point VIMBA_X_HOME below at that folder.
 //
 //  The expected directory layout inside $(VIMBA_X_HOME) is:
 //
@@ -23,16 +23,21 @@
 //
 //  Option 1 — vendor the SDK next to the project (default):
 //
-//      git clone this repo
+//      hdiutil attach ~/Downloads/VimbaX_Setup-<version>-macOS.dmg
 //      mkdir -p ThirdParty
-//      tar xzf VimbaX_Setup-<version>-macOS.tar.gz -C ThirdParty/
-//      mv ThirdParty/VimbaX_<version> ThirdParty/VimbaX
+//      cp -R /Volumes/VimbaX*/VimbaX* ThirdParty/VimbaX
+//      hdiutil detach /Volumes/VimbaX*
+//      xattr -dr com.apple.quarantine ThirdParty/VimbaX
 //
-//  Option 2 — point at a user-wide install under $HOME:
+//  Option 2 — drag the VimbaX folder into /Applications and point at it:
+//
+//      VIMBA_X_HOME = /Applications/VimbaX
+//
+//  Option 3 — keep it under $HOME:
 //
 //      VIMBA_X_HOME = $(HOME)/VimbaX
 //
-//  Option 3 — hand-set an absolute path:
+//  Option 4 — hand-set an absolute path:
 //
 //      VIMBA_X_HOME = /opt/VimbaX
 //

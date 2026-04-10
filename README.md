@@ -53,26 +53,42 @@ MRI-Pseudo-Haptic-macOS/
 
 ## 1. Install Vimba X
 
-Vimba X for macOS is distributed as a **tar.gz archive**, not a `.pkg`
-installer — there is no canonical install location, you extract it
-wherever you want and point the build at it.
+Vimba X for macOS ships as a **`.dmg` disk image** — there is no
+`.pkg` installer. You mount the image, drag the `VimbaX` folder to
+wherever you want the SDK to live, and point the build at it. By
+default this project expects the SDK to live at
+`$(PROJECT_DIR)/ThirdParty/VimbaX`.
 
-### 1a. Download and extract
+### 1a. Download and copy the SDK out of the DMG
 
 1. Download **Vimba X for macOS** from the [Allied Vision developer
    portal](https://www.alliedvision.com/en/products/software/vimba-x-sdk/).
-   The archive is named something like
-   `VimbaX_Setup-2024-1-macOS.tar.gz`.
-2. Extract the archive **into this repository's `ThirdParty/` folder**
-   and rename the top-level directory to `VimbaX`:
+   The file is named something like `VimbaX_Setup-2024-1-macOS.dmg`.
+
+2. Double-click the `.dmg` to mount it (Finder will open a window
+   showing a folder called `VimbaX` or `VimbaX_<version>`).
+
+3. Copy that folder out of the mounted image into this repository's
+   `ThirdParty/` directory, and rename it to `VimbaX`:
 
    ```bash
+   # Mount the DMG (Finder also does this when you double-click)
+   hdiutil attach ~/Downloads/VimbaX_Setup-*-macOS.dmg
+
+   # The DMG mounts at /Volumes/VimbaX (the volume name may include
+   # the version number — adjust the glob if needed).
    mkdir -p ThirdParty
-   tar xzf ~/Downloads/VimbaX_Setup-*-macOS.tar.gz -C ThirdParty/
-   mv ThirdParty/VimbaX_* ThirdParty/VimbaX
+   cp -R /Volumes/VimbaX*/VimbaX* ThirdParty/VimbaX
+
+   # Eject the image
+   hdiutil detach /Volumes/VimbaX*
    ```
 
-3. Verify the headers and dylibs landed in the expected spots:
+   If Finder shows the SDK folder with a version suffix
+   (e.g. `VimbaX_2024-1`), just make sure you end up with
+   `ThirdParty/VimbaX/` in this repo after the copy.
+
+4. Verify the headers and dylibs landed in the expected spots:
 
    ```bash
    ls ThirdParty/VimbaX/api/include/VmbC/VmbC.h
@@ -81,56 +97,72 @@ wherever you want and point the build at it.
    ls ThirdParty/VimbaX/cti/               # GenTL transport layers
    ```
 
-   If the directory layout of your Vimba X release is different
-   (Allied Vision occasionally shuffles things between releases), just
-   edit `Config/VimbaX.xcconfig` and change `VIMBA_X_HOME` to point at
-   the root folder that contains `api/include/VmbC/VmbC.h`.
+   If your Vimba X release uses a slightly different internal layout
+   (Allied Vision occasionally reshuffles folders between versions),
+   open `Config/VimbaX.xcconfig` and change `VIMBA_X_HOME` — or the
+   `HEADER_SEARCH_PATHS` / `LIBRARY_SEARCH_PATHS` lines — to point at
+   the folder that actually contains `api/include/VmbC/VmbC.h`.
 
-### 1b. Extract somewhere else
+### 1b. Install somewhere else
 
-If you'd rather keep the SDK in `$HOME` or `/opt`, open
-`Config/VimbaX.xcconfig` and change the `VIMBA_X_HOME` line, for
-example:
+If you'd rather drop the SDK into `/Applications`, `$HOME`, or
+`/opt` instead of vendoring it in the repo, just drag the `VimbaX`
+folder out of the DMG to that location and update
+`Config/VimbaX.xcconfig`:
 
+```
+VIMBA_X_HOME = /Applications/VimbaX
+```
+or
 ```
 VIMBA_X_HOME = $(HOME)/VimbaX
 ```
-
 or
-
 ```
 VIMBA_X_HOME = /opt/VimbaX
 ```
 
-### 1c. Runtime: transport layers
+### 1c. Clear the Gatekeeper quarantine
 
-At runtime Vimba X loads GenTL transport layer bundles (`.cti` files)
-from the directories listed in the `GENICAM_GENTL64_PATH` environment
-variable. Set it in Xcode's scheme so the running app can find the
-GigE transport layer:
-
-1. Product → Scheme → Edit Scheme…
-2. Run → Arguments → Environment Variables
-3. Add `GENICAM_GENTL64_PATH = $(PROJECT_DIR)/ThirdParty/VimbaX/cti`
-   (or whatever absolute path matches your `VIMBA_X_HOME`).
-
-Alternatively, run `source ThirdParty/VimbaX/Install.sh` in a terminal
-before launching Xcode — the script exports the variable into the
-current shell. macOS Gatekeeper may quarantine the extracted dylibs
-the first time you launch; if the app crashes on startup with a
-codesign error, run:
+Because the SDK was downloaded from the web and unpacked from a
+`.dmg`, macOS will have tagged every dylib with the
+`com.apple.quarantine` attribute. The first time the app loads
+`libVmbC.dylib` that tag causes Gatekeeper to kill the process. Strip
+it once:
 
 ```bash
 xattr -dr com.apple.quarantine ThirdParty/VimbaX
 ```
 
-### 1d. Sanity check
+(Replace the path if you installed to a different location.)
 
-Launch **Vimba X Viewer** (`ThirdParty/VimbaX/Tools/VimbaXViewer.app`)
-once and verify you can stream from your GigE camera. Configure the
-camera IP to be on the same link-local or private subnet as your Mac.
-Set `PacketSize` to something the host NIC can handle (typically
-1500 for standard NICs, 9000 for jumbo frames).
+### 1d. Runtime: GenTL transport layers
+
+At runtime Vimba X loads GenTL transport layer bundles (`.cti` files)
+from the directories listed in the `GENICAM_GENTL64_PATH` environment
+variable. Without it set, `VmbStartup` succeeds but no cameras are
+discovered. Set the variable in the Xcode scheme so the running app
+can find the GigE transport layer:
+
+1. Product → Scheme → Edit Scheme…
+2. Run → Arguments → Environment Variables
+3. Add:
+   `GENICAM_GENTL64_PATH = $(PROJECT_DIR)/ThirdParty/VimbaX/cti`
+   (or an absolute path that matches your `VIMBA_X_HOME`).
+
+Alternatively, `source ThirdParty/VimbaX/SetGenTLPath.sh` (or
+`Install.sh`, depending on the release) in a terminal before
+launching Xcode — the script exports the variable into the current
+shell and any child processes inherit it.
+
+### 1e. Sanity check
+
+Launch **Vimba X Viewer** (found in `ThirdParty/VimbaX/Tools/` or
+`ThirdParty/VimbaX/bin/`, depending on the release) once and verify
+you can stream from your GigE camera. Configure the camera IP to be
+on the same link-local or private subnet as your Mac. Set
+`PacketSize` to something the host NIC can handle (typically 1500
+for standard NICs, 9000 for jumbo frames).
 
 ## 2. Install MediaPipe Tasks Vision
 
