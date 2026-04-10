@@ -8,6 +8,14 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/VimbaX.xcconfig
+  Release: Config/VimbaX.xcconfig
+
 packages:
   MediaPipeTasksVision:
     # MediaPipe Tasks Vision is distributed as a prebuilt xcframework.
@@ -47,6 +55,9 @@ targets:
         com.apple.security.network.server: true
         com.apple.security.network.client: true
         com.apple.security.device.camera: true
+    configFiles:
+      Debug: Config/VimbaX.xcconfig
+      Release: Config/VimbaX.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mri.pseudohaptic.app
@@ -54,20 +65,8 @@ targets:
         CLANG_ENABLE_MODULES: YES
         CLANG_CXX_LANGUAGE_STANDARD: "c++17"
         SWIFT_OBJC_BRIDGING_HEADER: MRIPseudoHaptic/Support/MRIPseudoHaptic-Bridging-Header.h
-        # Vimba X SDK headers and dylibs. Adjust these paths to wherever you
-        # installed the Allied Vision Vimba X SDK (default shown below).
-        HEADER_SEARCH_PATHS:
-          - /Library/Application Support/Vimba X/api/include
-          - $(PROJECT_DIR)/ThirdParty/VimbaX/include
-        LIBRARY_SEARCH_PATHS:
-          - /Library/Application Support/Vimba X/api/lib
-          - $(PROJECT_DIR)/ThirdParty/VimbaX/lib
-        OTHER_LDFLAGS:
-          - -lVmbC
-        # Ensure Vimba's bundled GenICam / transport layer dylibs can be found at runtime.
-        LD_RUNPATH_SEARCH_PATHS:
-          - "@executable_path/../Frameworks"
-          - /Library/Application Support/Vimba X/api/lib
+        # Vimba X SDK search paths come from Config/VimbaX.xcconfig.
+        # Edit that file to point at your local VIMBA_X_HOME.
     dependencies:
       - sdk: AppKit.framework
       - sdk: CoreVideo.framework

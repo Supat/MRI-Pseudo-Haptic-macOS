@@ -53,14 +53,84 @@ MRI-Pseudo-Haptic-macOS/
 
 ## 1. Install Vimba X
 
-1. Download **Vimba X for macOS** from the Allied Vision developer portal.
-2. Run the installer (default path is `/Library/Application Support/Vimba X`).
-3. Confirm the headers and dylibs exist:
-   - `/Library/Application Support/Vimba X/api/include/VmbC/VmbC.h`
-   - `/Library/Application Support/Vimba X/api/lib/libVmbC.dylib`
-4. Launch **Vimba X Viewer** once and verify you can stream from your GigE camera. Configure the camera IP to be on the same link-local or private subnet as your Mac. Set `PacketSize` to something the host NIC can handle (typically 1500 for standard NICs, 9000 for jumbo frames).
+Vimba X for macOS is distributed as a **tar.gz archive**, not a `.pkg`
+installer — there is no canonical install location, you extract it
+wherever you want and point the build at it.
 
-If you install Vimba X in a non-standard location, override `HEADER_SEARCH_PATHS` / `LIBRARY_SEARCH_PATHS` in `project.yml` before generating the Xcode project.
+### 1a. Download and extract
+
+1. Download **Vimba X for macOS** from the [Allied Vision developer
+   portal](https://www.alliedvision.com/en/products/software/vimba-x-sdk/).
+   The archive is named something like
+   `VimbaX_Setup-2024-1-macOS.tar.gz`.
+2. Extract the archive **into this repository's `ThirdParty/` folder**
+   and rename the top-level directory to `VimbaX`:
+
+   ```bash
+   mkdir -p ThirdParty
+   tar xzf ~/Downloads/VimbaX_Setup-*-macOS.tar.gz -C ThirdParty/
+   mv ThirdParty/VimbaX_* ThirdParty/VimbaX
+   ```
+
+3. Verify the headers and dylibs landed in the expected spots:
+
+   ```bash
+   ls ThirdParty/VimbaX/api/include/VmbC/VmbC.h
+   ls ThirdParty/VimbaX/api/lib/libVmbC.dylib
+   ls ThirdParty/VimbaX/api/lib/libVmbImageTransform.dylib
+   ls ThirdParty/VimbaX/cti/               # GenTL transport layers
+   ```
+
+   If the directory layout of your Vimba X release is different
+   (Allied Vision occasionally shuffles things between releases), just
+   edit `Config/VimbaX.xcconfig` and change `VIMBA_X_HOME` to point at
+   the root folder that contains `api/include/VmbC/VmbC.h`.
+
+### 1b. Extract somewhere else
+
+If you'd rather keep the SDK in `$HOME` or `/opt`, open
+`Config/VimbaX.xcconfig` and change the `VIMBA_X_HOME` line, for
+example:
+
+```
+VIMBA_X_HOME = $(HOME)/VimbaX
+```
+
+or
+
+```
+VIMBA_X_HOME = /opt/VimbaX
+```
+
+### 1c. Runtime: transport layers
+
+At runtime Vimba X loads GenTL transport layer bundles (`.cti` files)
+from the directories listed in the `GENICAM_GENTL64_PATH` environment
+variable. Set it in Xcode's scheme so the running app can find the
+GigE transport layer:
+
+1. Product → Scheme → Edit Scheme…
+2. Run → Arguments → Environment Variables
+3. Add `GENICAM_GENTL64_PATH = $(PROJECT_DIR)/ThirdParty/VimbaX/cti`
+   (or whatever absolute path matches your `VIMBA_X_HOME`).
+
+Alternatively, run `source ThirdParty/VimbaX/Install.sh` in a terminal
+before launching Xcode — the script exports the variable into the
+current shell. macOS Gatekeeper may quarantine the extracted dylibs
+the first time you launch; if the app crashes on startup with a
+codesign error, run:
+
+```bash
+xattr -dr com.apple.quarantine ThirdParty/VimbaX
+```
+
+### 1d. Sanity check
+
+Launch **Vimba X Viewer** (`ThirdParty/VimbaX/Tools/VimbaXViewer.app`)
+once and verify you can stream from your GigE camera. Configure the
+camera IP to be on the same link-local or private subnet as your Mac.
+Set `PacketSize` to something the host NIC can handle (typically
+1500 for standard NICs, 9000 for jumbo frames).
 
 ## 2. Install MediaPipe Tasks Vision
 
@@ -146,7 +216,9 @@ If the pose landmarker fails to detect the body, the code falls back to the assu
 
 | Symptom | Fix |
 | --- | --- |
-| `VmbStartup failed` on launch | Vimba X not installed, or its transport layers are not discoverable. Re-run the Vimba installer. |
+| `VmbC.h not found` / linker can't find `-lVmbC` | `VIMBA_X_HOME` in `Config/VimbaX.xcconfig` does not point at a folder containing `api/include/VmbC/VmbC.h` and `api/lib/libVmbC.dylib`. Fix the path and re-run `xcodegen generate`. |
+| `VmbStartup failed` on launch | The GenTL transport layers are not on the loader path. Set `GENICAM_GENTL64_PATH` in the Xcode scheme (see step 1c) or source `ThirdParty/VimbaX/Install.sh` in the shell you launch Xcode from. |
+| Gatekeeper kills the app when it loads `libVmbC.dylib` | Clear the quarantine flag: `xattr -dr com.apple.quarantine ThirdParty/VimbaX`. |
 | Camera is listed but `VmbCameraOpen` fails | Another process (Vimba X Viewer, another copy of the app) has the camera open. |
 | Dropped frames / `Incomplete frame` errors | Bump `AcquisitionFrameRate` down or enable jumbo frames on your NIC. |
 | MediaPipe throws `Task file not found` | Make sure `hand_landmarker.task` and `pose_landmarker_lite.task` were added to the target as resources and are in `Models/`. |

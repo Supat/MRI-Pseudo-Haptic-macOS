@@ -1,0 +1,50 @@
+//
+//  VimbaX.xcconfig
+//
+//  Points the build system at your local Vimba X SDK installation.
+//
+//  The Vimba X SDK for macOS is distributed as a tar.gz; there is no
+//  canonical install location. Pick one of the options below and
+//  uncomment/adjust it to match where you extracted the SDK on disk.
+//
+//  The expected directory layout inside $(VIMBA_X_HOME) is:
+//
+//      $(VIMBA_X_HOME)/
+//          api/
+//              include/
+//                  VmbC/VmbC.h
+//                  VmbImageTransform/VmbTransform.h
+//              lib/
+//                  libVmbC.dylib
+//                  libVmbImageTransform.dylib
+//              ...
+//          cti/
+//              ...   (GenTL transport layers, required at runtime)
+//
+//  Option 1 — vendor the SDK next to the project (default):
+//
+//      git clone this repo
+//      mkdir -p ThirdParty
+//      tar xzf VimbaX_Setup-<version>-macOS.tar.gz -C ThirdParty/
+//      mv ThirdParty/VimbaX_<version> ThirdParty/VimbaX
+//
+//  Option 2 — point at a user-wide install under $HOME:
+//
+//      VIMBA_X_HOME = $(HOME)/VimbaX
+//
+//  Option 3 — hand-set an absolute path:
+//
+//      VIMBA_X_HOME = /opt/VimbaX
+//
+
+VIMBA_X_HOME = $(PROJECT_DIR)/ThirdParty/VimbaX
+
+HEADER_SEARCH_PATHS = $(inherited) $(VIMBA_X_HOME)/api/include
+LIBRARY_SEARCH_PATHS = $(inherited) $(VIMBA_X_HOME)/api/lib
+OTHER_LDFLAGS = $(inherited) -lVmbC -lVmbImageTransform
+
+// Ensure the Vimba C dylibs (and the CTI transport layers they load at
+// runtime) can be found after launch. The CTI loader honours the
+// GENICAM_GENTL64_PATH environment variable; see README for how to
+// propagate it into the Xcode run action.
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks $(VIMBA_X_HOME)/api/lib
