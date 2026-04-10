@@ -1,0 +1,79 @@
+# XcodeGen project specification.
+# Run `xcodegen generate` to produce MRIPseudoHaptic.xcodeproj.
+name: MRIPseudoHaptic
+options:
+  bundleIdPrefix: com.mri.pseudohaptic
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  MediaPipeTasksVision:
+    # MediaPipe Tasks Vision is distributed as a prebuilt xcframework.
+    # Either vendor the framework in ThirdParty/MediaPipe or consume it via CocoaPods.
+    # When using SwiftPM, point at the community mirror that wraps the framework.
+    url: https://github.com/google-ai-edge/mediapipe
+    branch: master
+
+targets:
+  MRIPseudoHaptic:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: MRIPseudoHaptic
+        excludes:
+          - "Support/Info.plist"
+          - "Support/MRIPseudoHaptic.entitlements"
+    resources:
+      - path: Models
+        optional: true
+    info:
+      path: MRIPseudoHaptic/Support/Info.plist
+      properties:
+        CFBundleName: MRI Pseudo Haptic
+        CFBundleDisplayName: MRI Pseudo Haptic
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+        NSCameraUsageDescription: "Used to capture frames from the GigE machine vision camera."
+        NSLocalNetworkUsageDescription: "Used to discover and stream from GigE Vision cameras."
+        NSHighResolutionCapable: true
+    entitlements:
+      path: MRIPseudoHaptic/Support/MRIPseudoHaptic.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.server: true
+        com.apple.security.network.client: true
+        com.apple.security.device.camera: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mri.pseudohaptic.app
+        SWIFT_VERSION: "5.9"
+        CLANG_ENABLE_MODULES: YES
+        CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+        SWIFT_OBJC_BRIDGING_HEADER: MRIPseudoHaptic/Support/MRIPseudoHaptic-Bridging-Header.h
+        # Vimba X SDK headers and dylibs. Adjust these paths to wherever you
+        # installed the Allied Vision Vimba X SDK (default shown below).
+        HEADER_SEARCH_PATHS:
+          - /Library/Application Support/Vimba X/api/include
+          - $(PROJECT_DIR)/ThirdParty/VimbaX/include
+        LIBRARY_SEARCH_PATHS:
+          - /Library/Application Support/Vimba X/api/lib
+          - $(PROJECT_DIR)/ThirdParty/VimbaX/lib
+        OTHER_LDFLAGS:
+          - -lVmbC
+        # Ensure Vimba's bundled GenICam / transport layer dylibs can be found at runtime.
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
+          - /Library/Application Support/Vimba X/api/lib
+    dependencies:
+      - sdk: AppKit.framework
+      - sdk: CoreVideo.framework
+      - sdk: CoreImage.framework
+      - sdk: CoreMedia.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: Network.framework
+      - sdk: Accelerate.framework

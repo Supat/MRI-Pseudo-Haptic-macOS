@@ -1,0 +1,36 @@
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# XcodeGen
+*.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# MediaPipe model cache
+Models/*.task
+!Models/.gitkeep
+
+# Vimba X SDK (installed locally)
+ThirdParty/VimbaX/
+
+# macOS
+.DS_Store

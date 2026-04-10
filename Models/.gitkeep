@@ -1,0 +1,3 @@
+# Place the MediaPipe .task model files here:
+#   hand_landmarker.task
+#   pose_landmarker_lite.task
