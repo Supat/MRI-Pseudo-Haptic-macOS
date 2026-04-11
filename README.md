@@ -51,6 +51,27 @@ MRI-Pseudo-Haptic-macOS/
 | MediaPipe Tasks Vision | 0.10.x | Prebuilt xcframework for macOS |
 | XcodeGen | 2.38+ | `brew install xcodegen` |
 
+## Quick start (automated)
+
+If you'd rather not walk through every step by hand, run the
+bootstrap script from the repo root:
+
+```bash
+./scripts/bootstrap.sh
+```
+
+It installs Homebrew (if missing), XcodeGen, CocoaPods, the MediaPipe
+`.task` model files, writes a Podfile, runs `pod install`, and
+generates the Xcode project. For Vimba X it will look for a
+`VimbaX_Setup-*-macOS.dmg` in the repo root, `ThirdParty/`, or
+`~/Downloads/`, mount it, copy the SDK into `ThirdParty/VimbaX/`, and
+clear the Gatekeeper quarantine. Because Vimba X is licensed by
+Allied Vision the script cannot download it for you — you still need
+to download the DMG manually and drop it in one of those folders
+first.
+
+If you'd rather do it step-by-step, follow sections 1–3 below.
+
 ## 1. Install Vimba X
 
 Vimba X for macOS ships as a **`.dmg` disk image** — there is no
